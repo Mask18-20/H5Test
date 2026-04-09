@@ -1,0 +1,80 @@
+{
+    "bi_name" : "X074_son1_fish",
+    "platform" : "android",
+    "game_name" : "Breezy Spin: Click Fun Slots",
+    "store_id" : "com.vegas.arcade.happy.swipe.mystery.whirl",
+    "package_name" : "com.vegas.arcade.happy.swipe.mystery.whirl",
+    "version_name" : "",
+    "version_code" : null,
+    "company" : "test",
+    "ad_platform" : 0,
+    "icon" : "http://a.mobile-mafia.com:3737/upload/X074_son1_fish.png",
+    "device_list" : [],
+    "invite_name" : "",
+    "email" : "",
+    "oneSignal_AppID" : null,
+    "adjust_attribute" : "https://None/adjust/is_unity_clicked?ifa={0}&app_name={1}",
+    "money_attribute" : "http://ec2-18-217-224-143.us-east-2.compute.amazonaws.com:3636/event/switch?package={0}&version={1}&os=",
+    "abTestServer" : "https://None/event/",
+    "friendServer" : "http://None:8000/",
+    "sentry_url" : null,
+    "private_url" : "http://www.thinkysplashgamestudio.net/policy.html",
+    "logserver_url" : null,
+    "user_license_url" : "http://www.thinkysplashgamestudio.net/terms.html",
+    "game_server_url" : null,
+    "box_server_url" : null,
+    "unity_build_id" : null,
+    "block_country" : "",
+    "app_signatures" : "",
+    "url_schemes" : null,
+    "libs" : {
+        "facebook" : {
+            "app_id" : null,
+            "client_token" : ""
+        },
+        "adjust" : {
+            "app_id" : "7wj0wd5fnmkg",
+            "events" : {
+                "activity" : "6cuw38",
+                "ad" : "zeh54c",
+                "ad_analysis" : "aov7g0",
+                "Ad_Impression_Revenue" : "voq8f1",
+                "deeplink" : "rtxzkm",
+                "focuschange" : "ygtyds",
+                "game" : "hdo6k0",
+                "guide_step" : "svuyoa",
+                "item_change" : "scag3a",
+                "logerror" : "t42a0y",
+                "money_change" : "c58fcy",
+                "noads" : "5ycg5z",
+                "open" : "xxa0re",
+                "packb" : "1l96nb",
+                "payment" : "hr7749",
+                "performance" : "hbp1i1",
+                "rate" : "x1b5ic",
+                "reach_level_10" : "j5mh26",
+                "reach_level_20" : "74j40s",
+                "reach_level_50" : "x63hst",
+                "reach_rev_1" : "82s565",
+                "reach_rev_2" : "sfp5tr",
+                "stage_end" : "6dl5rl",
+                "stage_start" : "wbgvqv",
+                "withdraw" : "5is2cf"
+            }
+        },
+        "iap" : {
+            "app_id" : "",
+            "products" : [],
+            "verify_type" : 0
+        },
+        "max" : {
+            "sdk_key" : "Fs-cUqJfRU6DI-3nHAtCUubM2g2mHMT4kl_2_v9IyohMfXicNfA0eEwvSJ6gvrtpXtmu2TpTdL-QrLAMqwaXPS",
+            "rewarded_ad_unit_id" : null,
+            "interstitial_ad_unit_id" : null,
+            "max_banner_ad_unit_id" : null,
+            "max_mrec_ad_unit_id" : null,
+            "max_app_open_ad_unit_id" : null
+        }
+    },
+    "version" : 3
+}
