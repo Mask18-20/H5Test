@@ -1,6 +1,6 @@
 {
     "bi_name" : "X074_son1_fish",
-    "platform" : "android",
+    "platform" : "webgl",
     "game_name" : "Breezy Spin: Click Fun Slots",
     "store_id" : "com.vegas.arcade.happy.swipe.mystery.whirl",
     "package_name" : "com.vegas.arcade.happy.swipe.mystery.whirl",
@@ -33,7 +33,7 @@
             "client_token" : ""
         },
         "adjust" : {
-            "app_id" : "7wj0wd5fnmkg",
+            "app_id" : "z7mlea33bta8",
             "events" : {
                 "activity" : "6cuw38",
                 "ad" : "zeh54c",

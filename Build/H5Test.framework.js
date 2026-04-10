@@ -1247,29 +1247,29 @@ var tempDouble;
 var tempI64;
 
 var ASM_CONSTS = {
- 3620376: function() {
+ 3621352: function() {
   return Module.webglContextAttributes.premultipliedAlpha;
  },
- 3620437: function() {
+ 3621413: function() {
   return Module.webglContextAttributes.preserveDrawingBuffer;
  },
- 3620501: function() {
+ 3621477: function() {
   return Module.webglContextAttributes.powerPreference;
  },
- 3620559: function() {
+ 3621535: function() {
   Module["emscripten_get_now_backup"] = performance.now;
  },
- 3620614: function($0) {
+ 3621590: function($0) {
   performance.now = function() {
    return $0;
   };
  },
- 3620662: function($0) {
+ 3621638: function($0) {
   performance.now = function() {
    return $0;
   };
  },
- 3620710: function() {
+ 3621686: function() {
   performance.now = Module["emscripten_get_now_backup"];
  }
 };
@@ -1371,6 +1371,287 @@ function stackTrace() {
  var js = jsStackTrace();
  if (Module["extraStackTrace"]) js += "\n" + Module["extraStackTrace"]();
  return demangleAll(js);
+}
+
+var adjustWebGLState = {
+ scriptUrl: "https://cdn.adjust.com/adjust-latest.min.js",
+ isLoading: false,
+ isLoaded: false,
+ isStarted: false,
+ isEnabled: true,
+ isOffline: false,
+ pendingStarts: [],
+ pendingEvents: [],
+ bridgeObjectName: null,
+ attributionJson: "",
+ adid: "",
+ webUuid: "",
+ ensureScript: function(onReady) {
+  if (adjustWebGLState.isLoaded && typeof window.Adjust !== "undefined") {
+   onReady();
+   return;
+  }
+  adjustWebGLState.pendingStarts.push(onReady);
+  if (adjustWebGLState.isLoading) {
+   return;
+  }
+  adjustWebGLState.isLoading = true;
+  var script = document.createElement("script");
+  script.src = adjustWebGLState.scriptUrl;
+  script.async = true;
+  script.onload = function() {
+   adjustWebGLState.isLoading = false;
+   adjustWebGLState.isLoaded = true;
+   var callbacks = adjustWebGLState.pendingStarts.slice();
+   adjustWebGLState.pendingStarts.length = 0;
+   callbacks.forEach(function(callback) {
+    try {
+     callback();
+    } catch (error) {
+     console.error("[Adjust][WebGL] ready callback failed", error);
+    }
+   });
+  };
+  script.onerror = function(error) {
+   adjustWebGLState.isLoading = false;
+   console.error("[Adjust][WebGL] Failed to load Web SDK", error);
+  };
+  document.head.appendChild(script);
+ },
+ updateAttribution: function(attribution) {
+  if (!attribution) {
+   return;
+  }
+  if (!attribution.adid && adjustWebGLState.adid) {
+   attribution.adid = adjustWebGLState.adid;
+  }
+  if (!attribution.network) {
+   attribution.network = "Organic";
+  }
+  adjustWebGLState.attributionJson = JSON.stringify(attribution);
+  if (attribution.adid) {
+   adjustWebGLState.adid = attribution.adid;
+  }
+  if (adjustWebGLState.bridgeObjectName) {
+   SendMessage(adjustWebGLState.bridgeObjectName, "OnAdjustAttributionChanged", adjustWebGLState.attributionJson);
+  }
+ },
+ flushEvents: function() {
+  if (!adjustWebGLState.isStarted || typeof window.Adjust === "undefined") {
+   return;
+  }
+  while (adjustWebGLState.pendingEvents.length > 0) {
+   var payload = adjustWebGLState.pendingEvents.shift();
+   try {
+    window.Adjust.trackEvent(payload);
+   } catch (error) {
+    console.error("[Adjust][WebGL] trackEvent failed", error, payload);
+   }
+  }
+ },
+ allocString: function(value) {
+  var str = value || "";
+  var length = lengthBytesUTF8(str) + 1;
+  var buffer = _malloc(length);
+  stringToUTF8(str, buffer, length);
+  return buffer;
+ }
+};
+
+function _AdjustWebGL_DisableThirdPartySharing() {
+ if (!adjustWebGLState.isStarted || typeof window.Adjust === "undefined") {
+  return;
+ }
+ try {
+  if (typeof window.Adjust.disableThirdPartySharing === "function") {
+   window.Adjust.disableThirdPartySharing();
+  }
+ } catch (error) {
+  console.error("[Adjust][WebGL] disableThirdPartySharing failed", error);
+ }
+}
+
+function _AdjustWebGL_FreeString(ptr) {
+ if (ptr) {
+  _free(ptr);
+ }
+}
+
+function _AdjustWebGL_GdprForgetMe() {
+ if (!adjustWebGLState.isStarted || typeof window.Adjust === "undefined") {
+  return;
+ }
+ try {
+  if (typeof window.Adjust.gdprForgetMe === "function") {
+   window.Adjust.gdprForgetMe();
+  }
+ } catch (error) {
+  console.error("[Adjust][WebGL] gdprForgetMe failed", error);
+ }
+}
+
+function _AdjustWebGL_GetAdid() {
+ var value = adjustWebGLState.adid || adjustWebGLState.webUuid || "";
+ return adjustWebGLState.allocString(value);
+}
+
+function _AdjustWebGL_GetAttribution() {
+ return adjustWebGLState.allocString(adjustWebGLState.attributionJson || "");
+}
+
+function _AdjustWebGL_Init(configPtr, bridgeObjectNamePtr) {
+ var config = JSON.parse(UTF8ToString(configPtr) || "{}");
+ adjustWebGLState.bridgeObjectName = UTF8ToString(bridgeObjectNamePtr);
+ adjustWebGLState.ensureScript(function() {
+  if (adjustWebGLState.isStarted || typeof window.Adjust === "undefined") {
+   return;
+  }
+  var initConfig = {
+   appToken: config.appToken,
+   environment: config.environment || "sandbox"
+  };
+  if (config.defaultTracker) initConfig.defaultTracker = config.defaultTracker;
+  if (config.externalDeviceId) initConfig.externalDeviceId = config.externalDeviceId;
+  if (config.logLevel) initConfig.logLevel = config.logLevel;
+  if (config.urlStrategy) initConfig.urlStrategy = config.urlStrategy;
+  if (typeof config.needsCost === "boolean") initConfig.needsCost = config.needsCost;
+  if (typeof config.eventBufferingEnabled === "boolean") initConfig.eventBufferingEnabled = config.eventBufferingEnabled;
+  if (typeof config.sendInBackground === "boolean") initConfig.sendInBackground = config.sendInBackground;
+  if (typeof config.launchDeferredDeeplink === "boolean") initConfig.launchDeferredDeeplink = config.launchDeferredDeeplink;
+  initConfig.attributionCallback = function() {
+   var attribution = null;
+   if (arguments.length >= 2) {
+    attribution = arguments[1];
+   } else if (arguments.length >= 1) {
+    attribution = arguments[0];
+   }
+   adjustWebGLState.updateAttribution(attribution);
+  };
+  if (config.hasDeferredDeeplinkCallback) {
+   initConfig.deferredDeeplinkCallback = function(deeplink) {
+    if (adjustWebGLState.bridgeObjectName) {
+     SendMessage(adjustWebGLState.bridgeObjectName, "OnAdjustDeferredDeeplink", deeplink || "");
+    }
+    return !!config.launchDeferredDeeplink;
+   };
+  }
+  try {
+   window.Adjust.initSdk(initConfig);
+   adjustWebGLState.isStarted = true;
+   if (typeof window.Adjust.waitForWebUUID === "function") {
+    window.Adjust.waitForWebUUID().then(function(webUuid) {
+     if (!webUuid) {
+      return;
+     }
+     adjustWebGLState.webUuid = webUuid;
+     if (!adjustWebGLState.adid) {
+      adjustWebGLState.adid = webUuid;
+     }
+     if (!adjustWebGLState.attributionJson) {
+      adjustWebGLState.updateAttribution({
+       adid: adjustWebGLState.adid,
+       network: "Organic"
+      });
+     }
+    }).catch(function(uuidError) {
+     console.warn("[Adjust][WebGL] waitForWebUUID failed", uuidError);
+    });
+   } else if (typeof window.Adjust.getWebUUID === "function") {
+    try {
+     var webUuid = window.Adjust.getWebUUID();
+     if (webUuid) {
+      adjustWebGLState.webUuid = webUuid;
+      if (!adjustWebGLState.adid) {
+       adjustWebGLState.adid = webUuid;
+      }
+      if (!adjustWebGLState.attributionJson) {
+       adjustWebGLState.updateAttribution({
+        adid: adjustWebGLState.adid,
+        network: "Organic"
+       });
+      }
+     }
+    } catch (uuidError) {
+     console.warn("[Adjust][WebGL] getWebUUID failed", uuidError);
+    }
+   }
+   if (typeof window.Adjust.waitForAttribution === "function") {
+    window.Adjust.waitForAttribution().then(function(attribution) {
+     adjustWebGLState.updateAttribution(attribution);
+    }).catch(function(attrError) {
+     console.warn("[Adjust][WebGL] waitForAttribution failed", attrError);
+    });
+   } else if (typeof window.Adjust.getAttribution === "function") {
+    try {
+     var attribution = window.Adjust.getAttribution();
+     if (attribution) {
+      adjustWebGLState.updateAttribution(attribution);
+     }
+    } catch (attrError) {
+     console.warn("[Adjust][WebGL] getAttribution failed", attrError);
+    }
+   }
+   adjustWebGLState.flushEvents();
+  } catch (error) {
+   console.error("[Adjust][WebGL] initSdk failed", error, initConfig);
+  }
+ });
+}
+
+function _AdjustWebGL_IsEnabled() {
+ return adjustWebGLState.isEnabled ? 1 : 0;
+}
+
+function _AdjustWebGL_SetEnabled(enabled) {
+ adjustWebGLState.isEnabled = !!enabled;
+ if (!adjustWebGLState.isStarted || typeof window.Adjust === "undefined") {
+  return;
+ }
+ try {
+  if (enabled) {
+   if (typeof window.Adjust.restart === "function") {
+    window.Adjust.restart();
+   }
+  } else if (typeof window.Adjust.stop === "function") {
+   window.Adjust.stop();
+  }
+ } catch (error) {
+  console.error("[Adjust][WebGL] setEnabled failed", error);
+ }
+}
+
+function _AdjustWebGL_SetOfflineMode(enabled) {
+ adjustWebGLState.isOffline = !!enabled;
+ if (!adjustWebGLState.isStarted || typeof window.Adjust === "undefined") {
+  return;
+ }
+ try {
+  if (enabled) {
+   if (typeof window.Adjust.switchToOfflineMode === "function") {
+    window.Adjust.switchToOfflineMode();
+   }
+  } else if (typeof window.Adjust.switchBackToOnlineMode === "function") {
+   window.Adjust.switchBackToOnlineMode();
+  }
+ } catch (error) {
+  console.error("[Adjust][WebGL] setOfflineMode failed", error);
+ }
+}
+
+function _AdjustWebGL_TrackEvent(eventPtr) {
+ var payload = JSON.parse(UTF8ToString(eventPtr) || "{}");
+ if (!payload || !payload.eventToken) {
+  return;
+ }
+ if (!adjustWebGLState.isStarted || typeof window.Adjust === "undefined") {
+  adjustWebGLState.pendingEvents.push(payload);
+  return;
+ }
+ try {
+  window.Adjust.trackEvent(payload);
+ } catch (error) {
+  console.error("[Adjust][WebGL] trackEvent failed", error, payload);
+ }
 }
 
 var JS_Accelerometer = null;
@@ -14176,6 +14457,16 @@ function intArrayFromString(stringy, dontAddNull, length) {
 }
 
 var asmLibraryArg = {
+ "AdjustWebGL_DisableThirdPartySharing": _AdjustWebGL_DisableThirdPartySharing,
+ "AdjustWebGL_FreeString": _AdjustWebGL_FreeString,
+ "AdjustWebGL_GdprForgetMe": _AdjustWebGL_GdprForgetMe,
+ "AdjustWebGL_GetAdid": _AdjustWebGL_GetAdid,
+ "AdjustWebGL_GetAttribution": _AdjustWebGL_GetAttribution,
+ "AdjustWebGL_Init": _AdjustWebGL_Init,
+ "AdjustWebGL_IsEnabled": _AdjustWebGL_IsEnabled,
+ "AdjustWebGL_SetEnabled": _AdjustWebGL_SetEnabled,
+ "AdjustWebGL_SetOfflineMode": _AdjustWebGL_SetOfflineMode,
+ "AdjustWebGL_TrackEvent": _AdjustWebGL_TrackEvent,
  "JS_Accelerometer_IsRunning": _JS_Accelerometer_IsRunning,
  "JS_Accelerometer_Start": _JS_Accelerometer_Start,
  "JS_Accelerometer_Stop": _JS_Accelerometer_Stop,
@@ -14818,6 +15109,10 @@ var dynCall_fiii = Module["dynCall_fiii"] = createExportWrapper("dynCall_fiii");
 
 var dynCall_jiii = Module["dynCall_jiii"] = createExportWrapper("dynCall_jiii");
 
+var dynCall_viiiiiiiiiiiiiiiii = Module["dynCall_viiiiiiiiiiiiiiiii"] = createExportWrapper("dynCall_viiiiiiiiiiiiiiiii");
+
+var dynCall_viiiiiiiiiiiiiiiiii = Module["dynCall_viiiiiiiiiiiiiiiiii"] = createExportWrapper("dynCall_viiiiiiiiiiiiiiiiii");
+
 var dynCall_vijji = Module["dynCall_vijji"] = createExportWrapper("dynCall_vijji");
 
 var dynCall_viifi = Module["dynCall_viifi"] = createExportWrapper("dynCall_viifi");
@@ -14868,19 +15163,13 @@ var dynCall_viij = Module["dynCall_viij"] = createExportWrapper("dynCall_viij");
 
 var dynCall_vidi = Module["dynCall_vidi"] = createExportWrapper("dynCall_vidi");
 
-var dynCall_dii = Module["dynCall_dii"] = createExportWrapper("dynCall_dii");
-
-var dynCall_vifi = Module["dynCall_vifi"] = createExportWrapper("dynCall_vifi");
-
-var dynCall_ifi = Module["dynCall_ifi"] = createExportWrapper("dynCall_ifi");
-
-var dynCall_vfi = Module["dynCall_vfi"] = createExportWrapper("dynCall_vfi");
-
 var dynCall_diiid = Module["dynCall_diiid"] = createExportWrapper("dynCall_diiid");
 
 var dynCall_jiiij = Module["dynCall_jiiij"] = createExportWrapper("dynCall_jiiij");
 
 var dynCall_fiiif = Module["dynCall_fiiif"] = createExportWrapper("dynCall_fiiif");
+
+var dynCall_vifi = Module["dynCall_vifi"] = createExportWrapper("dynCall_vifi");
 
 var dynCall_fiifi = Module["dynCall_fiifi"] = createExportWrapper("dynCall_fiifi");
 
@@ -14914,9 +15203,9 @@ var dynCall_fii = Module["dynCall_fii"] = createExportWrapper("dynCall_fii");
 
 var dynCall_iifi = Module["dynCall_iifi"] = createExportWrapper("dynCall_iifi");
 
-var dynCall_ffi = Module["dynCall_ffi"] = createExportWrapper("dynCall_ffi");
+var dynCall_dii = Module["dynCall_dii"] = createExportWrapper("dynCall_dii");
 
-var dynCall_fifi = Module["dynCall_fifi"] = createExportWrapper("dynCall_fifi");
+var dynCall_ifi = Module["dynCall_ifi"] = createExportWrapper("dynCall_ifi");
 
 var dynCall_idi = Module["dynCall_idi"] = createExportWrapper("dynCall_idi");
 
@@ -14936,9 +15225,13 @@ var dynCall_dddi = Module["dynCall_dddi"] = createExportWrapper("dynCall_dddi");
 
 var dynCall_iidi = Module["dynCall_iidi"] = createExportWrapper("dynCall_iidi");
 
+var dynCall_ffi = Module["dynCall_ffi"] = createExportWrapper("dynCall_ffi");
+
 var dynCall_iifiii = Module["dynCall_iifiii"] = createExportWrapper("dynCall_iifiii");
 
-var dynCall_viiffiii = Module["dynCall_viiffiii"] = createExportWrapper("dynCall_viiffiii");
+var dynCall_fifi = Module["dynCall_fifi"] = createExportWrapper("dynCall_fifi");
+
+var dynCall_vfi = Module["dynCall_vfi"] = createExportWrapper("dynCall_vfi");
 
 var dynCall_fi = Module["dynCall_fi"] = createExportWrapper("dynCall_fi");
 
@@ -14964,9 +15257,7 @@ var dynCall_viiiiiiiiiiiiiii = Module["dynCall_viiiiiiiiiiiiiii"] = createExport
 
 var dynCall_viiiiiiiiiiiiiiii = Module["dynCall_viiiiiiiiiiiiiiii"] = createExportWrapper("dynCall_viiiiiiiiiiiiiiii");
 
-var dynCall_viiiiiiiiiiiiiiiii = Module["dynCall_viiiiiiiiiiiiiiiii"] = createExportWrapper("dynCall_viiiiiiiiiiiiiiiii");
-
-var dynCall_viiiiiiiiiiiiiiiiii = Module["dynCall_viiiiiiiiiiiiiiiiii"] = createExportWrapper("dynCall_viiiiiiiiiiiiiiiiii");
+var dynCall_viiffiii = Module["dynCall_viiffiii"] = createExportWrapper("dynCall_viiffiii");
 
 var dynCall_viifiii = Module["dynCall_viifiii"] = createExportWrapper("dynCall_viifiii");
 
@@ -16064,28 +16355,6 @@ function invoke_dii(index, a1, a2) {
  }
 }
 
-function invoke_ifi(index, a1, a2) {
- var sp = stackSave();
- try {
-  return dynCall_ifi(index, a1, a2);
- } catch (e) {
-  stackRestore(sp);
-  if (e !== e + 0 && e !== "longjmp") throw e;
-  _setThrew(1, 0);
- }
-}
-
-function invoke_vfi(index, a1, a2) {
- var sp = stackSave();
- try {
-  dynCall_vfi(index, a1, a2);
- } catch (e) {
-  stackRestore(sp);
-  if (e !== e + 0 && e !== "longjmp") throw e;
-  _setThrew(1, 0);
- }
-}
-
 function invoke_diiid(index, a1, a2, a3, a4) {
  var sp = stackSave();
  try {
@@ -16101,6 +16370,17 @@ function invoke_fiiif(index, a1, a2, a3, a4) {
  var sp = stackSave();
  try {
   return dynCall_fiiif(index, a1, a2, a3, a4);
+ } catch (e) {
+  stackRestore(sp);
+  if (e !== e + 0 && e !== "longjmp") throw e;
+  _setThrew(1, 0);
+ }
+}
+
+function invoke_ffi(index, a1, a2) {
+ var sp = stackSave();
+ try {
+  return dynCall_ffi(index, a1, a2);
  } catch (e) {
   stackRestore(sp);
   if (e !== e + 0 && e !== "longjmp") throw e;
@@ -16284,32 +16564,21 @@ function invoke_viiiifiii(index, a1, a2, a3, a4, a5, a6, a7, a8) {
  }
 }
 
-function invoke_ffi(index, a1, a2) {
- var sp = stackSave();
- try {
-  return dynCall_ffi(index, a1, a2);
- } catch (e) {
-  stackRestore(sp);
-  if (e !== e + 0 && e !== "longjmp") throw e;
-  _setThrew(1, 0);
- }
-}
-
-function invoke_fifi(index, a1, a2, a3) {
- var sp = stackSave();
- try {
-  return dynCall_fifi(index, a1, a2, a3);
- } catch (e) {
-  stackRestore(sp);
-  if (e !== e + 0 && e !== "longjmp") throw e;
-  _setThrew(1, 0);
- }
-}
-
 function invoke_iifiii(index, a1, a2, a3, a4, a5) {
  var sp = stackSave();
  try {
   return dynCall_iifiii(index, a1, a2, a3, a4, a5);
+ } catch (e) {
+  stackRestore(sp);
+  if (e !== e + 0 && e !== "longjmp") throw e;
+  _setThrew(1, 0);
+ }
+}
+
+function invoke_ifi(index, a1, a2) {
+ var sp = stackSave();
+ try {
+  return dynCall_ifi(index, a1, a2);
  } catch (e) {
   stackRestore(sp);
   if (e !== e + 0 && e !== "longjmp") throw e;
@@ -16383,10 +16652,21 @@ function invoke_iidi(index, a1, a2, a3) {
  }
 }
 
-function invoke_viiffiii(index, a1, a2, a3, a4, a5, a6, a7) {
+function invoke_fifi(index, a1, a2, a3) {
  var sp = stackSave();
  try {
-  dynCall_viiffiii(index, a1, a2, a3, a4, a5, a6, a7);
+  return dynCall_fifi(index, a1, a2, a3);
+ } catch (e) {
+  stackRestore(sp);
+  if (e !== e + 0 && e !== "longjmp") throw e;
+  _setThrew(1, 0);
+ }
+}
+
+function invoke_vfi(index, a1, a2) {
+ var sp = stackSave();
+ try {
+  dynCall_vfi(index, a1, a2);
  } catch (e) {
   stackRestore(sp);
   if (e !== e + 0 && e !== "longjmp") throw e;
@@ -16409,6 +16689,17 @@ function invoke_iiiiiiiiii(index, a1, a2, a3, a4, a5, a6, a7, a8, a9) {
  var sp = stackSave();
  try {
   return dynCall_iiiiiiiiii(index, a1, a2, a3, a4, a5, a6, a7, a8, a9);
+ } catch (e) {
+  stackRestore(sp);
+  if (e !== e + 0 && e !== "longjmp") throw e;
+  _setThrew(1, 0);
+ }
+}
+
+function invoke_viiffiii(index, a1, a2, a3, a4, a5, a6, a7) {
+ var sp = stackSave();
+ try {
+  dynCall_viiffiii(index, a1, a2, a3, a4, a5, a6, a7);
  } catch (e) {
   stackRestore(sp);
   if (e !== e + 0 && e !== "longjmp") throw e;
@@ -18131,6 +18422,10 @@ if (!Object.getOwnPropertyDescriptor(Module, "wr")) Module["wr"] = function() {
 
 if (!Object.getOwnPropertyDescriptor(Module, "jsWebRequestGetResponseHeaderString")) Module["jsWebRequestGetResponseHeaderString"] = function() {
  abort("'jsWebRequestGetResponseHeaderString' was not exported. add it to EXPORTED_RUNTIME_METHODS (see the FAQ)");
+};
+
+if (!Object.getOwnPropertyDescriptor(Module, "adjustWebGLState")) Module["adjustWebGLState"] = function() {
+ abort("'adjustWebGLState' was not exported. add it to EXPORTED_RUNTIME_METHODS (see the FAQ)");
 };
 
 if (!Object.getOwnPropertyDescriptor(Module, "webSocketState")) Module["webSocketState"] = function() {
