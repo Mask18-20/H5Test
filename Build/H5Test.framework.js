@@ -1247,29 +1247,29 @@ var tempDouble;
 var tempI64;
 
 var ASM_CONSTS = {
- 3622296: function() {
+ 3621416: function() {
   return Module.webglContextAttributes.premultipliedAlpha;
  },
- 3622357: function() {
+ 3621477: function() {
   return Module.webglContextAttributes.preserveDrawingBuffer;
  },
- 3622421: function() {
+ 3621541: function() {
   return Module.webglContextAttributes.powerPreference;
  },
- 3622479: function() {
+ 3621599: function() {
   Module["emscripten_get_now_backup"] = performance.now;
  },
- 3622534: function($0) {
+ 3621654: function($0) {
   performance.now = function() {
    return $0;
   };
  },
- 3622582: function($0) {
+ 3621702: function($0) {
   performance.now = function() {
    return $0;
   };
  },
- 3622630: function() {
+ 3621750: function() {
   performance.now = Module["emscripten_get_now_backup"];
  }
 };
@@ -3409,76 +3409,6 @@ function _JS_WebRequest_SetTimeout(requestId, timeout) {
   return;
  }
  requestOptions.timeout = timeout;
-}
-
-var hostAdBridgeState = {
- initialized: false,
- pendingTimers: {}
-};
-
-function _RequestHostAd(adTypePtr, requestIdPtr) {
- var adType = UTF8ToString(adTypePtr);
- var requestId = UTF8ToString(requestIdPtr);
- if (!hostAdBridgeState.initialized) {
-  hostAdBridgeState.initialized = true;
-  window.addEventListener("message", function(event) {
-   var data = event.data;
-   if (typeof data === "string") {
-    try {
-     data = JSON.parse(data);
-    } catch (e) {
-     return;
-    }
-   }
-   if (!data || typeof data !== "object") return;
-   var action = String(data.action || data.type || "").toLowerCase();
-   if (action !== "ad_result" && action !== "adresult") return;
-   var payload = {
-    action: "adResult",
-    type: data.type || "AD_RESULT",
-    requestId: String(data.requestId || data.request_id || ""),
-    adType: String(data.adType || data.ad_type || ""),
-    status: String(data.status || "failed"),
-    success: !!data.success
-   };
-   if (payload.requestId && hostAdBridgeState.pendingTimers[payload.requestId]) {
-    clearTimeout(hostAdBridgeState.pendingTimers[payload.requestId]);
-    delete hostAdBridgeState.pendingTimers[payload.requestId];
-   }
-   if (typeof SendMessage === "function") {
-    SendMessage("WebGLHostBridge", "OnHostAdResult", JSON.stringify(payload));
-   }
-  });
- }
- if (!requestId) {
-  requestId = "req_" + Date.now();
- }
- var failResult = function() {
-  var result = {
-   action: "adResult",
-   type: "AD_RESULT",
-   requestId: requestId,
-   adType: adType,
-   status: "failed",
-   success: false
-  };
-  if (typeof SendMessage === "function") {
-   SendMessage("WebGLHostBridge", "OnHostAdResult", JSON.stringify(result));
-  }
- };
- if (!window.parent || window.parent === window) {
-  failResult();
-  return;
- }
- hostAdBridgeState.pendingTimers[requestId] = setTimeout(function() {
-  delete hostAdBridgeState.pendingTimers[requestId];
-  failResult();
- }, 15e3);
- window.parent.postMessage({
-  action: "showAd",
-  adType: adType,
-  requestId: requestId
- }, "*");
 }
 
 var webSocketState = {
@@ -14617,7 +14547,6 @@ var asmLibraryArg = {
  "JS_WebRequest_SetRedirectLimit": _JS_WebRequest_SetRedirectLimit,
  "JS_WebRequest_SetRequestHeader": _JS_WebRequest_SetRequestHeader,
  "JS_WebRequest_SetTimeout": _JS_WebRequest_SetTimeout,
- "RequestHostAd": _RequestHostAd,
  "WebSocketAddSubProtocol": _WebSocketAddSubProtocol,
  "WebSocketAllocate": _WebSocketAllocate,
  "WebSocketClose": _WebSocketClose,
@@ -15234,12 +15163,6 @@ var dynCall_viij = Module["dynCall_viij"] = createExportWrapper("dynCall_viij");
 
 var dynCall_vidi = Module["dynCall_vidi"] = createExportWrapper("dynCall_vidi");
 
-var dynCall_diiid = Module["dynCall_diiid"] = createExportWrapper("dynCall_diiid");
-
-var dynCall_jiiij = Module["dynCall_jiiij"] = createExportWrapper("dynCall_jiiij");
-
-var dynCall_fiiif = Module["dynCall_fiiif"] = createExportWrapper("dynCall_fiiif");
-
 var dynCall_vifi = Module["dynCall_vifi"] = createExportWrapper("dynCall_vifi");
 
 var dynCall_fiifi = Module["dynCall_fiifi"] = createExportWrapper("dynCall_fiifi");
@@ -15263,6 +15186,12 @@ var dynCall_viifffiiii = Module["dynCall_viifffiiii"] = createExportWrapper("dyn
 var dynCall_viifiifi = Module["dynCall_viifiifi"] = createExportWrapper("dynCall_viifiifi");
 
 var dynCall_iiifi = Module["dynCall_iiifi"] = createExportWrapper("dynCall_iiifi");
+
+var dynCall_diiid = Module["dynCall_diiid"] = createExportWrapper("dynCall_diiid");
+
+var dynCall_jiiij = Module["dynCall_jiiij"] = createExportWrapper("dynCall_jiiij");
+
+var dynCall_fiiif = Module["dynCall_fiiif"] = createExportWrapper("dynCall_fiiif");
 
 var dynCall_viiifffii = Module["dynCall_viiifffii"] = createExportWrapper("dynCall_viiifffii");
 
@@ -16415,50 +16344,6 @@ function invoke_viiiiiiii(index, a1, a2, a3, a4, a5, a6, a7, a8) {
  }
 }
 
-function invoke_dii(index, a1, a2) {
- var sp = stackSave();
- try {
-  return dynCall_dii(index, a1, a2);
- } catch (e) {
-  stackRestore(sp);
-  if (e !== e + 0 && e !== "longjmp") throw e;
-  _setThrew(1, 0);
- }
-}
-
-function invoke_diiid(index, a1, a2, a3, a4) {
- var sp = stackSave();
- try {
-  return dynCall_diiid(index, a1, a2, a3, a4);
- } catch (e) {
-  stackRestore(sp);
-  if (e !== e + 0 && e !== "longjmp") throw e;
-  _setThrew(1, 0);
- }
-}
-
-function invoke_fiiif(index, a1, a2, a3, a4) {
- var sp = stackSave();
- try {
-  return dynCall_fiiif(index, a1, a2, a3, a4);
- } catch (e) {
-  stackRestore(sp);
-  if (e !== e + 0 && e !== "longjmp") throw e;
-  _setThrew(1, 0);
- }
-}
-
-function invoke_ffi(index, a1, a2) {
- var sp = stackSave();
- try {
-  return dynCall_ffi(index, a1, a2);
- } catch (e) {
-  stackRestore(sp);
-  if (e !== e + 0 && e !== "longjmp") throw e;
-  _setThrew(1, 0);
- }
-}
-
 function invoke_fiifi(index, a1, a2, a3, a4) {
  var sp = stackSave();
  try {
@@ -16595,6 +16480,50 @@ function invoke_vifii(index, a1, a2, a3, a4) {
  var sp = stackSave();
  try {
   dynCall_vifii(index, a1, a2, a3, a4);
+ } catch (e) {
+  stackRestore(sp);
+  if (e !== e + 0 && e !== "longjmp") throw e;
+  _setThrew(1, 0);
+ }
+}
+
+function invoke_dii(index, a1, a2) {
+ var sp = stackSave();
+ try {
+  return dynCall_dii(index, a1, a2);
+ } catch (e) {
+  stackRestore(sp);
+  if (e !== e + 0 && e !== "longjmp") throw e;
+  _setThrew(1, 0);
+ }
+}
+
+function invoke_diiid(index, a1, a2, a3, a4) {
+ var sp = stackSave();
+ try {
+  return dynCall_diiid(index, a1, a2, a3, a4);
+ } catch (e) {
+  stackRestore(sp);
+  if (e !== e + 0 && e !== "longjmp") throw e;
+  _setThrew(1, 0);
+ }
+}
+
+function invoke_fiiif(index, a1, a2, a3, a4) {
+ var sp = stackSave();
+ try {
+  return dynCall_fiiif(index, a1, a2, a3, a4);
+ } catch (e) {
+  stackRestore(sp);
+  if (e !== e + 0 && e !== "longjmp") throw e;
+  _setThrew(1, 0);
+ }
+}
+
+function invoke_ffi(index, a1, a2) {
+ var sp = stackSave();
+ try {
+  return dynCall_ffi(index, a1, a2);
  } catch (e) {
   stackRestore(sp);
   if (e !== e + 0 && e !== "longjmp") throw e;
@@ -18493,10 +18422,6 @@ if (!Object.getOwnPropertyDescriptor(Module, "wr")) Module["wr"] = function() {
 
 if (!Object.getOwnPropertyDescriptor(Module, "jsWebRequestGetResponseHeaderString")) Module["jsWebRequestGetResponseHeaderString"] = function() {
  abort("'jsWebRequestGetResponseHeaderString' was not exported. add it to EXPORTED_RUNTIME_METHODS (see the FAQ)");
-};
-
-if (!Object.getOwnPropertyDescriptor(Module, "hostAdBridgeState")) Module["hostAdBridgeState"] = function() {
- abort("'hostAdBridgeState' was not exported. add it to EXPORTED_RUNTIME_METHODS (see the FAQ)");
 };
 
 if (!Object.getOwnPropertyDescriptor(Module, "adjustWebGLState")) Module["adjustWebGLState"] = function() {
